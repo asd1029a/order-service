@@ -46,35 +46,43 @@ public class OrderController {
 
     @PostMapping("/{userId}/orders")
     public ResponseEntity<ResponseOrder> createOrder(@PathVariable String userId, @RequestBody RequestOrder orderDetails) {
+        log.info("Before add orders data");
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
         OrderDto orderDto = mapper.map(orderDetails, OrderDto.class);
 
         orderDto.setUserId(userId);
         //jpa
-//        OrderDto createdOrder = orderService.createOrder(orderDto);
-//        ResponseOrder responseOrder = mapper.map(createdOrder, ResponseOrder.class);
+        OrderDto createdOrder = orderService.createOrder(orderDto);
+        ResponseOrder responseOrder = mapper.map(createdOrder, ResponseOrder.class);
         //kafka
-        orderDto.setOrderId(UUID.randomUUID().toString());
-        orderDto.setTotalPrice(orderDetails.getStock() * orderDetails.getUnitPrice());
+//        orderDto.setOrderId(UUID.randomUUID().toString());
+//        orderDto.setTotalPrice(orderDetails.getStock() * orderDetails.getUnitPrice());
 
         /* send this order to the kafka*/
-        kafkaProducer.send("example-catalog-topic", orderDto);
-        orderProducer.send("orders", orderDto);
+//        kafkaProducer.send("example-catalog-topic", orderDto);
+//        orderProducer.send("orders", orderDto);
 
-        ResponseOrder responseOrder = mapper.map(orderDto, ResponseOrder.class);
-
+//        ResponseOrder responseOrder = mapper.map(orderDto, ResponseOrder.class);
+        log.info("After added orders data");
         return ResponseEntity.status(HttpStatus.CREATED).body(responseOrder);
     }
 
     @GetMapping("/{userId}/orders")
-    public ResponseEntity<List<ResponseOrder>> getOrder(@PathVariable String userId) {
+    public ResponseEntity<List<ResponseOrder>> getOrder(@PathVariable String userId) throws Exception {
+        log.info("Before retrieve orders data");
         Iterable<OrderEntity> orders = orderService.getOrdersByUserId(userId);
         List<ResponseOrder> result = new ArrayList<>();
         orders.forEach(v -> {
             result.add(new ModelMapper().map(v, ResponseOrder.class));
         });
-
+        try {
+            Thread.sleep(1);
+            throw new Exception("장애");
+        } catch (InterruptedException e) {
+            log.error(e.getMessage());
+        }
+        log.info("After retrieve orders data");
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 }
